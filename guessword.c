@@ -78,25 +78,58 @@ int main (int argc, char ** argv)
 	printf("%s\n", salt);
 	free(lineptr);
 
-
+	//char *test = "123456";
+	//printf("%s - %s\n", test, salt);
+	//char *hash = crypt(test, salt);
+	//printf("hash %s\n", hash);
+	//return(0);
 	//open dictionaries and create all necessary data structures
 	struct pwd_hash *pwd_hashes_250 = malloc(250 * sizeof(struct pwd_hash));
-	parse_top_250(salt, &pwd_hashes_250);
+	//parse_top_250(salt, &pwd_hashes_250);
+
+
+//------------------------------------------------------------------------------------------------------------------
+	FILE * top250 = fopen("top.txt", "r");
+	if (top250 == NULL)
+	{
+		printf("error opening top250\n");
+		exit(EXIT_FAILURE);
+	}
+	int i = 0;
+	char *passwd = malloc(32 * sizeof(char));
+	while (passwd != NULL)
+	{
+		passwd = fgets(passwd, 32, top250);
+		if (passwd != NULL)
+		{
+			char * token = strtok(passwd, "\n");
+			//printf("%s - %s\n", token, salt);
+			//char *hash = crypt(token, salt);
+			//printf("hash %s\n", hash);
+
+			(pwd_hashes_250[i]).pwd = malloc(32 * sizeof(char));
+			(pwd_hashes_250[i]).pwd = strcpy((pwd_hashes_250[i]).pwd, token);
+			//(*array)[index].pwd = token;
+			(pwd_hashes_250[i]).hash = malloc(32 * sizeof(char));
+			char * hash = do_pwd_hash(token, salt);
+			(pwd_hashes_250[i]).hash = strcpy((pwd_hashes_250[i]).hash, hash);
+		}
+		i++;
+
+	}
 
 	for (int i = 0; i < 250; i++)
 	{
 		printf("%s %s\n", (pwd_hashes_250[i]).hash, (pwd_hashes_250[i]).pwd);
 	}
-
-
 	//continue this part
-
+//------------------------------------------------------------------------------------------------------------------
 
 	//check against user password file
 	len = 0;
 	fseek(shd, 0, SEEK_SET);
 
-
+	int matches = 0;
 	printf("starting to check\n");
 	while (len != -1)
 	{
@@ -128,10 +161,12 @@ int main (int argc, char ** argv)
 			if(strcmp(hash, (pwd_hashes_250[i]).hash) == 0)
 			{
 				printf("%s:%s\n", user, (pwd_hashes_250[i]).pwd);
+				matches++;
 			}
 			//qprintf("%s %s\n", (pwd_hashes_250[i]).hash, (pwd_hashes_250[i]).pwd);
 		}
 	}
+	printf("found %d\n", matches);
 
 
 
@@ -141,7 +176,7 @@ int main (int argc, char ** argv)
 void parse_top_250(char * salt, struct pwd_hash ** array)
 {
 	//open file
-	FILE * top250 = fopen("top250.txt", "r");
+	FILE * top250 = fopen("top.txt", "r");
 	if (top250 == NULL)
 	{
 		printf("error opening top250\n");
@@ -152,7 +187,28 @@ void parse_top_250(char * salt, struct pwd_hash ** array)
 	ssize_t len = 0;
 	int index = 0;
 	//struct pwd_hash * array = malloc(250 * sizeof(struct pwd_hash));
+	char *pwd = malloc(32 * sizeof(char));
+	while (pwd != NULL)
+	{
+		pwd = fgets(pwd, 32, top250);
+		if (pwd != NULL)
+		{
+			char * token = strtok(pwd, "\n");
+			//printf("%s - %s\n", token, salt);
+			//char *hash = crypt(token, salt);
+			//printf("hash %s\n", hash);
 
+			(*array)[index].pwd = malloc(32 * sizeof(char));
+			(*array)[index].pwd = strcpy((*array)[index].pwd, token);
+			//(*array)[index].pwd = token;
+			(*array)[index].hash = malloc(32 * sizeof(char));
+			char * hash = do_pwd_hash(token, salt);
+			(*array)[index].hash = strcpy((*array)[index].hash, hash);
+		}
+		free(pwd);
+		char *pwd = malloc(32 * sizeof(char));
+	}
+	/*
 	while(len >= 0)
 	{
 		char *lineptr = NULL;
@@ -170,7 +226,6 @@ void parse_top_250(char * salt, struct pwd_hash ** array)
 			token = strtok(NULL, "\t");
 			token = strtok(NULL, "\n");
 			printf("%s\n", token);
-
 			//compute pwd hash and return
 
 			(*array)[index].pwd = malloc(32 * sizeof(char));
@@ -185,7 +240,7 @@ void parse_top_250(char * salt, struct pwd_hash ** array)
 
 		index++;
 		free(lineptr);
-	}
+	}*/
 
 }
 
