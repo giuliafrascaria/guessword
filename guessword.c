@@ -84,12 +84,12 @@ int main (int argc, char ** argv)
 	//printf("hash %s\n", hash);
 	//return(0);
 	//open dictionaries and create all necessary data structures
-	struct pwd_hash *pwd_hashes_250 = malloc(250 * sizeof(struct pwd_hash));
+	struct pwd_hash *pwd_hashes_250 = malloc(478 * sizeof(struct pwd_hash));
 	//parse_top_250(salt, &pwd_hashes_250);
 
 
 //------------------------------------------------------------------------------------------------------------------
-	FILE * top250 = fopen("top.txt", "r");
+	FILE * top250 = fopen("top1.txt", "r");
 	if (top250 == NULL)
 	{
 		printf("error opening top250\n");
@@ -118,7 +118,7 @@ int main (int argc, char ** argv)
 
 	}
 
-	for (int i = 0; i < 250; i++)
+	for (int i = 0; i < 478; i++)
 	{
 		printf("%s %s\n", (pwd_hashes_250[i]).hash, (pwd_hashes_250[i]).pwd);
 	}
@@ -156,7 +156,7 @@ int main (int argc, char ** argv)
 		//printf("%s %s\n", user, hash);
 
 		//printf("starting to check\n");
-		for (int i = 0; i < 250; i++)
+		for (int i = 0; i < 478; i++)
 		{
 			if(strcmp(hash, (pwd_hashes_250[i]).hash) == 0)
 			{
