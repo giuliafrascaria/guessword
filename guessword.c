@@ -27,6 +27,7 @@ struct user_info {
 struct user_details {
 	char * username;
 	char * full_name;
+	char * hash;
 	struct user_details * next;
 };
 
@@ -64,10 +65,17 @@ int main (int argc, char ** argv)
 
 
 	//retrieve salt from shadow file
-	char *lineptr = NULL;
-	size_t n = 0;
-	ssize_t len = getline(&lineptr, &n, shd);
-	if (len < 0)
+	//char *lineptr = NULL;
+	//size_t n = 0;
+	//ssize_t len = getline(&lineptr, &n, shd);
+	//if (len < 0)
+	//{
+	//	printf("error reading shadow file for salt\n");
+	//	exit(EXIT_FAILURE);
+	//}
+	char *lineptr = malloc(32 * sizeof(char));
+	lineptr = fgets(lineptr, 32, shd);
+	if (lineptr == NULL)
 	{
 		printf("error reading shadow file for salt\n");
 		exit(EXIT_FAILURE);
@@ -84,9 +92,44 @@ int main (int argc, char ** argv)
 	memcpy(salt, &lineptr[7], 5);
 	printf("%s\n", salt);
 	free(lineptr);
+	fseek(shd, 0, SEEK_SET);
 
 	//create username list
+	struct user_details * head, *current;
+	head = NULL;
+	current = NULL;
 
+	char * pwdline = malloc(128 * sizeof(char));
+	char * shdline = malloc(64 * sizeof(char));
+	while (fgets(pwdline, 128, pwd))
+	{
+		shdline = fgets(shdline, 64, shd);
+
+
+		struct user_details * node = malloc(sizeof(struct user_details));
+		node->username = malloc(6*sizeof(char));
+		node->username = memcpy(node->username, &pwdline[0], 6);
+
+		node->full_name = malloc(20 * sizeof(char));
+		//node->full_name = strtok(&(pwdline[19]), ",");
+		strtok(pwdline, ":");
+		strtok(NULL, ":");
+		strtok(NULL, ":");
+		strtok(NULL, ":");
+		node->full_name = strtok(NULL, ",");
+
+		node->hash = malloc(28*sizeof(char));
+		node->hash = memcpy(node->hash, &shdline[7], 28);
+		printf("%s:%s\n", node->username, node->hash);
+
+		if(head == NULL){
+      current = head = node;
+    } else{
+      current = current->next = node;
+    }
+
+	}
+	return(0);
 
 	//read user names and test nameYYYY first, before going to threads
 	//delete found users from worklist
@@ -135,56 +178,64 @@ int main (int argc, char ** argv)
 //------------------------------------------------------------------------------------------------------------------
 
 	//check against user password file
-	len = 0;
+	//len = 0;
 	fseek(shd, 0, SEEK_SET);
-
+	char *lineptr1 = malloc(40 * sizeof(char));
 	int matches = 0;
 	printf("starting to check\n");
-	while (len != -1)
+	//while (len != -1)
+	while (lineptr1 != NULL)
 	{
-		char *lineptr = NULL;
-		size_t n = 0;
-		len = getline(&lineptr, &n, shd);
+		//char *lineptr = NULL;
+		//size_t n = 0;
+		//len = getline(&lineptr, &n, shd);
 
-		char * user = malloc(6*sizeof(char));
-		if (user == NULL)
+		lineptr1 = fgets(lineptr1, 40, shd);
+
+		if (lineptr1 != NULL)
 		{
-			printf("error allocating user\n");
-			exit(EXIT_FAILURE);
-		}
-
-		char * hash = malloc(32*sizeof(char));
-		if (hash == NULL)
-		{
-			printf("error allocating user\n");
-			exit(EXIT_FAILURE);
-		}
-
-		user = memcpy(user, &lineptr[0], 6);
-		hash = memcpy(hash, &lineptr[7], 28);
-		//printf("%s %s\n", user, hash);
-
-		//printf("starting to check\n");
-		for (int i = 0; i < 478; i++)
-		{
-			if(strcmp(hash, (pwd_hashes_250[i]).hash) == 0)
+			char * user = malloc(6*sizeof(char));
+			if (user == NULL)
 			{
-				printf("%s:%s\n", user, (pwd_hashes_250[i]).pwd);
-				matches++;
+				printf("error allocating user\n");
+				exit(EXIT_FAILURE);
 			}
-			/*
-			else
+
+			char * hash = malloc(32*sizeof(char));
+			if (hash == NULL)
 			{
-				char *nameyear = test_name_year(pwd_hashes_250[i].pwd, salt, hash);
-				if (nameyear != NULL)
+				printf("error allocating user\n");
+				exit(EXIT_FAILURE);
+			}
+
+			user = memcpy(user, &lineptr1[0], 6);
+			hash = memcpy(hash, &lineptr1[7], 28);
+			//printf("%s %s\n", user, hash);
+
+			//printf("starting to check\n");
+			for (int i = 0; i < 478; i++)
+			{
+				if(strcmp(hash, (pwd_hashes_250[i]).hash) == 0)
 				{
-					printf("%s:%s\n", user, nameyear);
+					printf("%s:%s\n", user, (pwd_hashes_250[i]).pwd);
 					matches++;
 				}
-			}*/
+				/*
+				else
+				{
+					char *nameyear = test_name_year(pwd_hashes_250[i].pwd, salt, hash);
+					if (nameyear != NULL)
+					{
+						printf("%s:%s\n", user, nameyear);
+						matches++;
+					}
+				}*/
 
-			//qprintf("%s %s\n", (pwd_hashes_250[i]).hash, (pwd_hashes_250[i]).pwd);
+				//qprintf("%s %s\n", (pwd_hashes_250[i]).hash, (pwd_hashes_250[i]).pwd);
+			}
 		}
+
+
 	}
 	printf("found %d\n", matches);
 
