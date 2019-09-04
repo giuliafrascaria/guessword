@@ -24,10 +24,17 @@ struct user_info {
 	char * uppercase_name_hash;
 };
 
+struct user_details {
+	char * username;
+	char * full_name;
+	struct user_details * next;
+};
+
 //function definitions
 void parse_top_250(char * salt, struct pwd_hash ** array);
-
 char * do_pwd_hash(char *pwd, char *salt);
+char * test_name_year(char *name, char *salt, char *hash);
+
 
 //let the cracking begin
 int main (int argc, char ** argv)
@@ -78,11 +85,13 @@ int main (int argc, char ** argv)
 	printf("%s\n", salt);
 	free(lineptr);
 
-	//char *test = "123456";
-	//printf("%s - %s\n", test, salt);
-	//char *hash = crypt(test, salt);
-	//printf("hash %s\n", hash);
-	//return(0);
+	//create username list
+
+
+	//read user names and test nameYYYY first, before going to threads
+	//delete found users from worklist
+
+
 	//open dictionaries and create all necessary data structures
 	struct pwd_hash *pwd_hashes_250 = malloc(478 * sizeof(struct pwd_hash));
 	//parse_top_250(salt, &pwd_hashes_250);
@@ -118,10 +127,10 @@ int main (int argc, char ** argv)
 
 	}
 
-	for (int i = 0; i < 478; i++)
-	{
-		printf("%s %s\n", (pwd_hashes_250[i]).hash, (pwd_hashes_250[i]).pwd);
-	}
+	//for (int i = 0; i < 478; i++)
+	//{
+	//	printf("%s %s\n", (pwd_hashes_250[i]).hash, (pwd_hashes_250[i]).pwd);
+	//}
 	//continue this part
 //------------------------------------------------------------------------------------------------------------------
 
@@ -163,6 +172,17 @@ int main (int argc, char ** argv)
 				printf("%s:%s\n", user, (pwd_hashes_250[i]).pwd);
 				matches++;
 			}
+			/*
+			else
+			{
+				char *nameyear = test_name_year(pwd_hashes_250[i].pwd, salt, hash);
+				if (nameyear != NULL)
+				{
+					printf("%s:%s\n", user, nameyear);
+					matches++;
+				}
+			}*/
+
 			//qprintf("%s %s\n", (pwd_hashes_250[i]).hash, (pwd_hashes_250[i]).pwd);
 		}
 	}
@@ -184,7 +204,7 @@ void parse_top_250(char * salt, struct pwd_hash ** array)
 	}
 
 	//passwords are the last element of the line
-	ssize_t len = 0;
+	//ssize_t len = 0;
 	int index = 0;
 	//struct pwd_hash * array = malloc(250 * sizeof(struct pwd_hash));
 	char *pwd = malloc(32 * sizeof(char));
@@ -205,8 +225,8 @@ void parse_top_250(char * salt, struct pwd_hash ** array)
 			char * hash = do_pwd_hash(token, salt);
 			(*array)[index].hash = strcpy((*array)[index].hash, hash);
 		}
-		free(pwd);
-		char *pwd = malloc(32 * sizeof(char));
+//		free(pwd);
+//		char *pwd = malloc(32 * sizeof(char));
 	}
 	/*
 	while(len >= 0)
@@ -253,11 +273,28 @@ char * do_pwd_hash(char * pwd, char * salt)
 	final_salt[5] = '\0';
 	//strcat(final_salt, "\0");
 
-	printf("password %s\n", pwd);
-	printf("salt %s\n", salt);
-
 	char * hash = crypt(pwd, salt);
-	printf("%s\n", hash);
+	//printf("%s\n", hash);
 	return hash;
 
+}
+
+char * test_name_year(char *name, char *salt, char *hash)
+{
+	char *years[21] = {"1960", "1961", "1962", "1963", "1964", "1965", "1966", "1967", "1968", "1969", "1970", "1971", "1972", "1973", "1974", "1975", "1976", "1977", "1978", "1979", "1980"};
+
+	for (int i = 0; i < 21; i ++)
+	{
+
+		char *new_combination = malloc(20 * sizeof(char));
+		new_combination = strcpy(new_combination, name);
+		new_combination = strcat(new_combination, years[i]);
+
+		char *test_hash = do_pwd_hash(new_combination, salt);
+		if (strcmp(test_hash, hash) == 0)
+		{
+			return new_combination;
+		}
+	}
+	return NULL;
 }
