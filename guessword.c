@@ -6,9 +6,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-
-
-
+#include <ctype.h>
 
 
 //structs
@@ -34,6 +32,7 @@ struct user_details {
 //function definitions
 void parse_top_250(char * salt, struct pwd_hash ** array);
 char * do_pwd_hash(char *pwd, char *salt);
+char * check_name_patterns(char * name, char * hash, char * salt);
 char * test_name_year(char *name, char *salt, char *hash);
 
 
@@ -116,11 +115,11 @@ int main (int argc, char ** argv)
 		strtok(NULL, ":");
 		strtok(NULL, ":");
 		strtok(NULL, ":");
-		node->full_name = strtok(NULL, ",");
+		node->full_name = strtok(NULL, " ");
 
 		node->hash = malloc(28*sizeof(char));
 		node->hash = memcpy(node->hash, &shdline[7], 28);
-		printf("%s:%s\n", node->username, node->hash);
+		printf("%s:%s:%s\n", node->username, node->hash, node->full_name);
 
 		if(head == NULL){
       current = head = node;
@@ -129,7 +128,7 @@ int main (int argc, char ** argv)
     }
 
 	}
-	return(0);
+	//return(0);
 
 	//read user names and test nameYYYY first, before going to threads
 	//delete found users from worklist
@@ -177,12 +176,37 @@ int main (int argc, char ** argv)
 	//continue this part
 //------------------------------------------------------------------------------------------------------------------
 
-	//check against user password file
+	//check against top250 passwords
 	//len = 0;
-	fseek(shd, 0, SEEK_SET);
-	char *lineptr1 = malloc(40 * sizeof(char));
+
 	int matches = 0;
+	int found = 0;
 	printf("starting to check\n");
+
+	for(current = head; current ; current=current->next)
+	{
+		//for each user check top250
+		printf("working on %s, %s\n", current->username, current->full_name);
+		found = 0;
+		for (int i = 0; i < 478; i++)
+		{
+				if(strcmp(current->hash, (pwd_hashes_250[i]).hash) == 0)
+				{
+					printf("%s:%s\n", current->username, (pwd_hashes_250[i]).pwd);
+					matches++;
+					found = 1;
+					break;
+				}
+
+		}
+		
+  }
+	printf("found %d\n", matches);
+	//exit(EXIT_SUCCESS);
+
+	exit(EXIT_SUCCESS);
+
+	/*
 	//while (len != -1)
 	while (lineptr1 != NULL)
 	{
@@ -220,7 +244,7 @@ int main (int argc, char ** argv)
 					printf("%s:%s\n", user, (pwd_hashes_250[i]).pwd);
 					matches++;
 				}
-				/*
+
 				else
 				{
 					char *nameyear = test_name_year(pwd_hashes_250[i].pwd, salt, hash);
@@ -229,19 +253,14 @@ int main (int argc, char ** argv)
 						printf("%s:%s\n", user, nameyear);
 						matches++;
 					}
-				}*/
+				}
 
 				//qprintf("%s %s\n", (pwd_hashes_250[i]).hash, (pwd_hashes_250[i]).pwd);
 			}
 		}
-
-
 	}
 	printf("found %d\n", matches);
-
-
-
-	exit(EXIT_SUCCESS);
+	exit(EXIT_SUCCESS);*/
 }
 
 void parse_top_250(char * salt, struct pwd_hash ** array)
@@ -328,6 +347,22 @@ char * do_pwd_hash(char * pwd, char * salt)
 	//printf("%s\n", hash);
 	return hash;
 
+}
+
+char * check_name_patterns(char * name, char * hash, char * salt)
+{
+	//lowercase
+	name[0] = tolower(name[0]);
+	//printf("%s\n", name);
+	char * test_hash = do_pwd_hash(name, salt);
+	if (strcmp(test_hash, hash) == 0)
+	{
+		return name;
+	}
+	return NULL;
+	//uppercase
+
+	//birth year
 }
 
 char * test_name_year(char *name, char *salt, char *hash)
