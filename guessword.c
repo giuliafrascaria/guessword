@@ -111,11 +111,14 @@ int main (int argc, char ** argv)
 
 		node->full_name = malloc(20 * sizeof(char));
 		//node->full_name = strtok(&(pwdline[19]), ",");
-		strtok(pwdline, ":");
-		strtok(NULL, ":");
-		strtok(NULL, ":");
-		strtok(NULL, ":");
-		node->full_name = strtok(NULL, " ");
+		char *buffer = malloc(32*sizeof(char));
+		strtok_r(pwdline, ":", &buffer);
+		strtok_r(NULL, ":", &buffer);
+		strtok_r(NULL, ":", &buffer);
+		strtok_r(NULL, ":", &buffer);
+		char * name = strtok_r(NULL, " ", &buffer);
+
+		node->full_name = strcpy(node->full_name, name);
 
 		node->hash = malloc(28*sizeof(char));
 		node->hash = memcpy(node->hash, &shdline[7], 28);
@@ -197,9 +200,17 @@ int main (int argc, char ** argv)
 					found = 1;
 					break;
 				}
-
 		}
-		
+		if (found == 0)
+		{
+			char *success = check_name_patterns(current->full_name, current->hash, salt);
+			if (success != NULL)
+			{
+				printf("%s:%s\n", current->username, success);
+				matches++;
+			}
+		}
+
   }
 	printf("found %d\n", matches);
 	//exit(EXIT_SUCCESS);
