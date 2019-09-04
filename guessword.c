@@ -189,7 +189,7 @@ int main (int argc, char ** argv)
 	for(current = head; current ; current=current->next)
 	{
 		//for each user check top250
-		printf("working on %s, %s\n", current->username, current->full_name);
+		//printf("working on %s, %s\n", current->username, current->full_name);
 		found = 0;
 		for (int i = 0; i < 478; i++)
 		{
@@ -365,10 +365,35 @@ char * check_name_patterns(char * name, char * hash, char * salt)
 	//lowercase
 	name[0] = tolower(name[0]);
 	//printf("%s\n", name);
-	char * test_hash = do_pwd_hash(name, salt);
-	if (strcmp(test_hash, hash) == 0)
+	char * test_hash1 = do_pwd_hash(name, salt);
+	if (strcmp(test_hash1, hash) == 0)
 	{
 		return name;
+	}
+	else
+	{
+		ssize_t namesize = strlen(name);
+		for (int i = 0; i < namesize; i++)
+		{
+			name[i] = toupper(name[i]);
+		}
+		char * test_hash2 = do_pwd_hash(name, salt);
+		if (strcmp(test_hash2, hash) == 0)
+		{
+			return name;
+		}
+		else
+		{
+			for (int i = 0; i < namesize; i++)
+			{
+				name[i] = tolower(name[i]);
+				char * test_hash3 = test_name_year(name, salt, hash);
+				if( test_hash3 != NULL)
+				{
+					return test_hash3;
+				}
+			}
+		}
 	}
 	return NULL;
 	//uppercase
@@ -378,9 +403,10 @@ char * check_name_patterns(char * name, char * hash, char * salt)
 
 char * test_name_year(char *name, char *salt, char *hash)
 {
-	char *years[21] = {"1960", "1961", "1962", "1963", "1964", "1965", "1966", "1967", "1968", "1969", "1970", "1971", "1972", "1973", "1974", "1975", "1976", "1977", "1978", "1979", "1980"};
+	char *years[42] = {"1960", "1961", "1962", "1963", "1964", "1965", "1966", "1967", "1968", "1969", "1970", "1971", "1972", "1973", "1974", "1975", "1976", "1977", "1978", "1979", "1980",
+										"60", "61", "62", "63", "64", "65", "66", "67", "68", "69", "70", "71", "72", "73", "74", "75", "76", "77", "78", "79", "80"};
 
-	for (int i = 0; i < 21; i ++)
+	for (int i = 0; i < 42; i ++)
 	{
 
 		char *new_combination = malloc(20 * sizeof(char));
