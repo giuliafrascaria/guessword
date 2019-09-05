@@ -1,5 +1,8 @@
 #define _XOPEN_SOURCE
-#include <unistd.h>
+
+#define _GNU_SOURCE
+#include <unistd.h>        /* See feature_test_macros(7) */
+#include <crypt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,6 +28,12 @@ struct user_details {
 	struct user_details * next;
 };
 
+struct thread_args_dict {
+	char * filename;
+	char * salt;
+	int tid;
+};
+
 struct thread_args {
 	int tid;
 	struct user_details * user_list;
@@ -33,14 +42,18 @@ struct thread_args {
 
 #define PTHREAD_N 8
 pthread_t threads[PTHREAD_N];
+pthread_t dict_threads[PTHREAD_N];
+struct pwd_hash * dictionary_array[PTHREAD_N];
 
 //function definitions
 void parse_top_250(char * salt, struct pwd_hash ** array);
 char * do_pwd_hash(char *pwd, char *salt);
 char * check_name_patterns(char * name, char * hash, char * salt);
 char * test_name_year(char *name, char *salt, char *hash);
+void * create_dictionary_partition(void *arg);
 void * crack_partition(void * arg);
 void join_threads(void);
+void join_threads_dict(void);
 
 
 //let the cracking begin
@@ -140,7 +153,7 @@ int main (int argc, char ** argv)
 	//delete found users from worklist
 	int matches = 0;
 	printf("starting to check\n");
-
+/*
 	for(current = head; current ; current=current->next)
 	{
 		//for each user check name-dependant stuff
@@ -151,15 +164,54 @@ int main (int argc, char ** argv)
 			current->found = 1;
 			matches++;
 		}
-  }
+  }*/
 
 	//open dictionaries and create all necessary data structures
 	//struct pwd_hash *pwd_hashes_250 = malloc(478 * sizeof(struct pwd_hash));
 	//struct pwd_hash *pwd_hashes_250 = malloc(502 * sizeof(struct pwd_hash));
 	//struct pwd_hash *pwd_hashes_250 = malloc(10022 * sizeof(struct pwd_hash));
+
+
 	struct pwd_hash *pwd_hashes_250 = malloc(261490 * sizeof(struct pwd_hash));
+
+	dictionary_array[0] = malloc(32686 * sizeof(struct pwd_hash));
+	dictionary_array[1] = malloc(32687 * sizeof(struct pwd_hash));
+	dictionary_array[2] = malloc(32687 * sizeof(struct pwd_hash));
+	dictionary_array[3] = malloc(32687 * sizeof(struct pwd_hash));
+	dictionary_array[4] = malloc(32687 * sizeof(struct pwd_hash));
+	dictionary_array[5] = malloc(32687 * sizeof(struct pwd_hash));
+	dictionary_array[6] = malloc(32687 * sizeof(struct pwd_hash));
+	dictionary_array[7] = malloc(32680 * sizeof(struct pwd_hash));
 	//parse_top_250(salt, &pwd_hashes_250);
 
+	char *filename[8] = {"d1.txt", "d2.txt", "d3.txt", "d4.txt", "d5.txt", "d6.txt", "d7.txt", "d8.txt"};
+
+	printf("starting the dictionary threads\n");
+	struct thread_args_dict args_dict[PTHREAD_N];
+
+	for (size_t i = 0; i < PTHREAD_N; i++) {
+			args_dict[i].tid = i;
+			args_dict[i].salt = salt;
+			args_dict[i].filename = filename[i];
+			int success = pthread_create(&dict_threads[i], NULL, create_dictionary_partition, &args_dict[i]);
+			if (success != 0)
+			{
+				printf("pthread_create fail\n");
+				exit(EXIT_FAILURE);
+			}
+	}
+	join_threads_dict();
+
+	for (int i = 0; i < 32686; i++)
+	{
+		printf("%s %s\n", dictionary_array[0][i].hash, dictionary_array[0][i].pwd);
+	}
+	for (int i = 0; i < 32687; i++)
+	{
+		printf("%s %s\n", dictionary_array[1][i].hash, dictionary_array[1][i].pwd);
+	}
+	printf("the end\n");
+	return 0;
 
 //------------------------------------------------------------------------------------------------------------------
 	FILE * top250 = fopen("dictionary.txt", "r");
@@ -195,7 +247,7 @@ int main (int argc, char ** argv)
 
 	//check against top250 passwords
 	//len = 0;
-	printf("starting the threads\n");
+	printf("starting the crack threads\n");
 	struct thread_args args[PTHREAD_N];
 
 	for (size_t i = 0; i < PTHREAD_N; i++) {
@@ -255,6 +307,24 @@ char * do_pwd_hash(char * pwd, char * salt)
 	return hash;
 
 }
+
+char * do_pwd_hash_reentrant(char * pwd, char * salt)
+{
+	//char *enc = "$encrypted";
+	char *final_salt = malloc(sizeof(salt) + 1);
+
+	final_salt = strncpy(final_salt, salt, 5);
+	final_salt[5] = '\0';
+	//strcat(final_salt, "\0");
+
+	struct crypt_data data;
+	data.initialized = 0;
+	char * hash = crypt_r(pwd, salt, &data);
+	//printf("%s\n", hash);
+	return hash;
+
+}
+
 
 char * check_name_patterns(char * name, char * hash, char * salt)
 {
@@ -319,6 +389,42 @@ char * test_name_year(char *name, char *salt, char *hash)
 }
 
 
+void * create_dictionary_partition(void *arg)
+{
+	struct thread_args_dict a = *(struct thread_args_dict *) arg;
+
+	FILE * f = fopen(a.filename, "r");
+	if (f == NULL)
+	{
+		printf("error opening top250\n");
+		exit(EXIT_FAILURE);
+	}
+	int i = 0;
+	char *passwd = malloc(32 * sizeof(char));
+	while (passwd != NULL)
+	{
+		passwd = fgets(passwd, 32, f);
+		if (passwd != NULL)
+		{
+			char * token = strtok(passwd, "\n");
+			//printf("%s - %s\n", token, salt);
+			//char *hash = crypt(token, salt);
+			//printf("hash %s\n", hash);
+
+			(dictionary_array[a.tid])[i].pwd = malloc(32 * sizeof(char));
+			(dictionary_array[a.tid])[i].pwd = strcpy((dictionary_array[a.tid])[i].pwd, token);
+			//(*array)[index].pwd = token;
+			(dictionary_array[a.tid])[i].hash = malloc(32 * sizeof(char));
+			char * hash = do_pwd_hash_reentrant(token, a.salt);
+			(dictionary_array[a.tid])[i].hash = strcpy((dictionary_array[a.tid])[i].hash, hash);
+		}
+		i++;
+
+	}
+	return NULL;
+}
+
+
 void * crack_partition(void * arg)
 {
 	struct thread_args a = *(struct thread_args *) arg;
@@ -351,6 +457,16 @@ void join_threads(void)
 {
     for (size_t i = 0; i < PTHREAD_N; i++)
         if (pthread_join(threads[i], NULL) != 0)
+				{
+            printf("pthread_join failed\n");
+						exit(EXIT_FAILURE);
+				}
+}
+
+void join_threads_dict(void)
+{
+    for (size_t i = 0; i < PTHREAD_N; i++)
+        if (pthread_join(dict_threads[i], NULL) != 0)
 				{
             printf("pthread_join failed\n");
 						exit(EXIT_FAILURE);
