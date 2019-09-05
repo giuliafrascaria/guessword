@@ -15,17 +15,11 @@ struct pwd_hash {
 	char * hash;
 };
 
-struct user_info {
-	char * lowercase_name;
-	char * lowercase_name_hash;
-	char * uppercase_name;
-	char * uppercase_name_hash;
-};
-
 struct user_details {
 	char * username;
 	char * full_name;
 	char * hash;
+	int found;
 	struct user_details * next;
 };
 
@@ -122,6 +116,8 @@ int main (int argc, char ** argv)
 
 		node->hash = malloc(28*sizeof(char));
 		node->hash = memcpy(node->hash, &shdline[7], 28);
+
+		node->found = 0;
 		printf("%s:%s:%s\n", node->username, node->hash, node->full_name);
 
 		if(head == NULL){
@@ -140,12 +136,12 @@ int main (int argc, char ** argv)
 	//open dictionaries and create all necessary data structures
 	//struct pwd_hash *pwd_hashes_250 = malloc(478 * sizeof(struct pwd_hash));
 	//struct pwd_hash *pwd_hashes_250 = malloc(502 * sizeof(struct pwd_hash));
-	struct pwd_hash *pwd_hashes_250 = malloc(10000 * sizeof(struct pwd_hash));
+	struct pwd_hash *pwd_hashes_250 = malloc(10022 * sizeof(struct pwd_hash));
 	//parse_top_250(salt, &pwd_hashes_250);
 
 
 //------------------------------------------------------------------------------------------------------------------
-	FILE * top250 = fopen("top10k.txt", "r");
+	FILE * top250 = fopen("top10+.txt", "r");
 	if (top250 == NULL)
 	{
 		printf("error opening top250\n");
@@ -193,7 +189,7 @@ int main (int argc, char ** argv)
 		//for each user check top250
 		//printf("working on %s, %s\n", current->username, current->full_name);
 		found = 0;
-		for (int i = 0; i < 10000; i++)
+		for (int i = 0; i < 10022; i++)
 		{
 				if(strcmp(current->hash, (pwd_hashes_250[i]).hash) == 0)
 				{
