@@ -136,12 +136,13 @@ int main (int argc, char ** argv)
 	//open dictionaries and create all necessary data structures
 	//struct pwd_hash *pwd_hashes_250 = malloc(478 * sizeof(struct pwd_hash));
 	//struct pwd_hash *pwd_hashes_250 = malloc(502 * sizeof(struct pwd_hash));
-	struct pwd_hash *pwd_hashes_250 = malloc(10022 * sizeof(struct pwd_hash));
+	//struct pwd_hash *pwd_hashes_250 = malloc(10022 * sizeof(struct pwd_hash));
+	struct pwd_hash *pwd_hashes_250 = malloc(261490 * sizeof(struct pwd_hash));
 	//parse_top_250(salt, &pwd_hashes_250);
 
 
 //------------------------------------------------------------------------------------------------------------------
-	FILE * top250 = fopen("top10+.txt", "r");
+	FILE * top250 = fopen("dictionary.txt", "r");
 	if (top250 == NULL)
 	{
 		printf("error opening top250\n");
@@ -189,7 +190,8 @@ int main (int argc, char ** argv)
 		//for each user check top250
 		//printf("working on %s, %s\n", current->username, current->full_name);
 		found = 0;
-		for (int i = 0; i < 10022; i++)
+		//for (int i = 0; i < 10022; i++)
+		for (int i = 0; i < 261490; i++)
 		{
 				if(strcmp(current->hash, (pwd_hashes_250[i]).hash) == 0)
 				{
