@@ -59,7 +59,7 @@ char * do_pwd_hash(char *pwd, char *salt);
 char * check_surname_patterns(char * surname, char * hash, char *salt);
 char * check_name_patterns(char * name, char * hash, char * salt);
 char * test_name_year(char *name, char *salt, char *hash);
-char * leet_sub(char *name, int letter);
+char * leet_sub(char *name, char letter);
 void * create_dictionary_partition(void *arg);
 void * crack_partition(void * arg);
 void join_threads(void);
@@ -371,7 +371,29 @@ char * check_name_patterns(char * name, char * hash, char * salt)
 			else
 			{
 				//leet substitutions
-				return NULL;
+				char * test_a = leet_sub(name, 'a');
+				if (test_a != NULL)
+				{
+					char * test_hash4 = do_pwd_hash(test_a, salt);
+					if (strcmp(test_hash4, hash) == 0)
+					{
+						return test_a;
+					}
+				}
+				else
+				{
+					char * test_s = leet_sub(name, 's');
+					if (test_s != NULL)
+					{
+						printf("here\n");
+						char * test_hash5 = do_pwd_hash(test_s, salt);
+						if (strcmp(test_hash5, hash) == 0)
+						{
+							printf("here\n");
+							return test_s;
+						}
+					}
+				}
 			}
 
 		}
@@ -404,22 +426,42 @@ char * test_name_year(char *name, char *salt, char *hash)
 }
 
 
-char * leet_sub(char *name, int letter)
+char * leet_sub(char *name, char letter)
 {
-	return NULL;
-	/*
 	int len = strlen(name);
 	switch (letter)
 	{
-		case "l":
-			char *leetsub = malloc(len + 1);
-			char *l = strchr(name, letter);
-		case "o":
-			char *leetsub = malloc(len + 1);
-			char *o = strchr(name, letter);
+		case 'a':
+			if(strchr(name, letter) != NULL)
+			{
+				for (int i = 0; i < len; i++)
+				{
+					if (strcmp(&name[i], "a") == 0)
+					{
+						strcpy(&name[i], "^");
+						printf("%s\n", name);
+						return name;
+					}
+				}
+			}
+			return NULL;
+		case 's':
+			if(strchr(name, letter) != NULL)
+			{
+				for (int i = 0; i < len; i++)
+				{
+					if (strcmp(&name[i], "s") == 0)
+					{
+						strcpy(&name[i], "$");
+						printf("%s\n", name);
+						return name;
+					}
+				}
+			}
+			return NULL;
 		default:
 			return NULL;
-	}*/
+	}
 
 }
 
