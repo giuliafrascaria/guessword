@@ -188,6 +188,7 @@ int main (int argc, char ** argv)
 		if (success != NULL)
 		{
 			printf("%s:%s\n", current->username, success);
+			fflush(stdout);
 			current->found = 1;
 			count_increment();
 			matches++;
@@ -198,6 +199,7 @@ int main (int argc, char ** argv)
 			if (success != NULL)
 			{
 				printf("%s:%s\n", current->username, success);
+				fflush(stdout);
 				current->found = 1;
 				count_increment();
 				matches++;
@@ -385,11 +387,9 @@ char * check_name_patterns(char * name, char * hash, char * salt)
 					char * test_s = leet_sub(name, 's');
 					if (test_s != NULL)
 					{
-						printf("here\n");
 						char * test_hash5 = do_pwd_hash(test_s, salt);
 						if (strcmp(test_hash5, hash) == 0)
 						{
-							printf("here\n");
 							return test_s;
 						}
 					}
@@ -439,7 +439,6 @@ char * leet_sub(char *name, char letter)
 					if (strcmp(&name[i], "a") == 0)
 					{
 						strcpy(&name[i], "^");
-						printf("%s\n", name);
 						return name;
 					}
 				}
@@ -453,7 +452,6 @@ char * leet_sub(char *name, char letter)
 					if (strcmp(&name[i], "s") == 0)
 					{
 						strcpy(&name[i], "$");
-						printf("%s\n", name);
 						return name;
 					}
 				}
@@ -531,6 +529,7 @@ void * crack_partition(void * arg)
 						{
 							//use mutex and fflush buffer
 							printf("%s:%s\n", current->username, dictionary_array[i][j].pwd);
+							fflush(stdout);
 							count_increment();
 
 							found = 1;
