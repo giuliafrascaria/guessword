@@ -22,6 +22,7 @@ struct pwd_hash {
 struct user_details {
 	char * username;
 	char * full_name;
+	char * surname;
 	char * hash;
 	int found;
 	int uid;
@@ -55,8 +56,10 @@ volatile int partition_sizes[8] = {58396, 58396, 58396, 58396, 58396, 58396, 583
 //function definitions
 void parse_top_250(char * salt, struct pwd_hash ** array);
 char * do_pwd_hash(char *pwd, char *salt);
+char * check_surname_patterns(char * surname, char * hash, char *salt);
 char * check_name_patterns(char * name, char * hash, char * salt);
 char * test_name_year(char *name, char *salt, char *hash);
+char * leet_sub(char *name, int letter);
 void * create_dictionary_partition(void *arg);
 void * crack_partition(void * arg);
 void join_threads(void);
@@ -140,13 +143,29 @@ int main (int argc, char ** argv)
 
 		node->full_name = strcpy(node->full_name, name);
 
+
+		char * surname = strtok_r(NULL, ",", &buffer);
+		int s_len = strlen(surname);
+		for (int i = 0; i < s_len; i++)
+		{
+			//printf("here\n");
+			if (strcmp(&surname[i], " ") == 0)
+			{
+				//double name, save only one;
+				surname = strtok_r(NULL, " ", &buffer);
+			}
+		}
+		printf("%s\n", surname);
+		node->surname = malloc(40 * sizeof(char));
+		node->surname = strcpy(node->surname, surname);
+
 		node->hash = malloc(28*sizeof(char));
 		node->hash = memcpy(node->hash, &shdline[7], 28);
 
 		node->found = 0;
 		node->uid = uid%8;
 		uid++;
-		printf("%d:%s:%s:%s\n", node->uid, node->username, node->hash, node->full_name);
+		//printf("%d:%s:%s:%s\n", node->uid, node->username, node->hash, node->full_name);
 
 		if(head == NULL){
       current = head = node;
@@ -173,6 +192,18 @@ int main (int argc, char ** argv)
 			count_increment();
 			matches++;
 		}
+		else
+		{
+			char *success = check_surname_patterns(current->surname, current->hash, salt);
+			if (success != NULL)
+			{
+				printf("%s:%s\n", current->username, success);
+				current->found = 1;
+				count_increment();
+				matches++;
+			}
+		}
+
   }
 
 	//open dictionaries and create all necessary data structures
@@ -180,18 +211,9 @@ int main (int argc, char ** argv)
 	//struct pwd_hash *pwd_hashes_250 = malloc(502 * sizeof(struct pwd_hash));
 	//struct pwd_hash *pwd_hashes_250 = malloc(10022 * sizeof(struct pwd_hash));
 
-
 	struct pwd_hash *pwd_hashes_250 = malloc(261490 * sizeof(struct pwd_hash));
 
 	dictionary_array[0] = malloc(partition_sizes[0] * sizeof(struct pwd_hash));
-	printf("partition %d size %d\n", 0, partition_sizes[0]);
-	printf("partition %d size %d\n", 1, partition_sizes[1]);
-	printf("partition %d size %d\n", 2, partition_sizes[2]);
-	printf("partition %d size %d\n", 3, partition_sizes[3]);
-	printf("partition %d size %d\n", 4, partition_sizes[4]);
-	printf("partition %d size %d\n", 5, partition_sizes[5]);
-	printf("partition %d size %d\n", 6, partition_sizes[6]);
-	printf("partition %d size %d\n", 7, partition_sizes[7]);
 
 	dictionary_array[1] = malloc(partition_sizes[1] * sizeof(struct pwd_hash));
 	dictionary_array[2] = malloc(partition_sizes[2] * sizeof(struct pwd_hash));
@@ -220,47 +242,11 @@ int main (int argc, char ** argv)
 	}
 	join_threads_dict();
 
-	//for (int i = 0; i < 32686; i++)
-	//{
-	//	printf("%s %s\n", dictionary_array[0][i].hash, dictionary_array[0][i].pwd);
-	//}
-	//for (int i = 0; i < 32687; i++)
-	//{
-	//	printf("%s %s\n", dictionary_array[1][i].hash, dictionary_array[1][i].pwd);
-	//}
 	printf("finished parsing dictionaries\n");
 	//return 0;
 
 //------------------------------------------------------------------------------------------------------------------
-/*
-	FILE * top250 = fopen("dictionary.txt", "r");
-	if (top250 == NULL)
-	{
-		printf("error opening top250\n");
-		exit(EXIT_FAILURE);
-	}
-	int i = 0;
-	char *passwd = malloc(32 * sizeof(char));
-	while (passwd != NULL)
-	{
-		passwd = fgets(passwd, 32, top250);
-		if (passwd != NULL)
-		{
-			char * token = strtok(passwd, "\n");
-			//printf("%s - %s\n", token, salt);
-			//char *hash = crypt(token, salt);
-			//printf("hash %s\n", hash);
 
-			(pwd_hashes_250[i]).pwd = malloc(32 * sizeof(char));
-			(pwd_hashes_250[i]).pwd = strcpy((pwd_hashes_250[i]).pwd, token);
-			//(*array)[index].pwd = token;
-			(pwd_hashes_250[i]).hash = malloc(32 * sizeof(char));
-			char * hash = do_pwd_hash(token, salt);
-			(pwd_hashes_250[i]).hash = strcpy((pwd_hashes_250[i]).hash, hash);
-		}
-		i++;
-
-	}*/
 	//continue this part
 //------------------------------------------------------------------------------------------------------------------
 
@@ -284,32 +270,6 @@ int main (int argc, char ** argv)
 	join_threads();
 	printf("found %d\n", count);
 	printf("the end\n");
-	return 0;
-
-
-	printf("starting to check\n");
-
-	for(current = head; current ; current=current->next)
-	{
-		//for each user check top250
-		//printf("working on %s, %s\n", current->username, current->full_name);
-		if (current->found == 0)
-		{
-			//for (int i = 0; i < 10022; i++)
-			for (int i = 0; i < 261490; i++)
-			{
-					if(strcmp(current->hash, (pwd_hashes_250[i]).hash) == 0)
-					{
-						printf("%s:%s\n", current->username, (pwd_hashes_250[i]).pwd);
-						matches++;
-						break;
-					}
-			}
-		}
-  }
-	//printf("found %d\n", matches);
-	printf("found %d\n", count);
-	//exit(EXIT_SUCCESS);
 
 	exit(EXIT_SUCCESS);
 }
@@ -348,6 +308,33 @@ char * do_pwd_hash_reentrant(char * pwd, char * salt)
 }
 
 
+char * check_surname_patterns(char * surname, char * hash, char *salt)
+{
+	//lowercase
+	surname[0] = tolower(surname[0]);
+	//printf("%s\n", name);
+	char * test_hash1 = do_pwd_hash(surname, salt);
+	if (strcmp(test_hash1, hash) == 0)
+	{
+		return surname;
+	}
+	else
+	{
+		ssize_t namesize = strlen(surname);
+		for (int i = 0; i < namesize; i++)
+		{
+			surname[i] = toupper(surname[i]);
+		}
+		char * test_hash2 = do_pwd_hash(surname, salt);
+		if (strcmp(test_hash2, hash) == 0)
+		{
+			return surname;
+		}
+	}
+	return NULL;
+}
+
+
 char * check_name_patterns(char * name, char * hash, char * salt)
 {
 	//lowercase
@@ -375,12 +362,18 @@ char * check_name_patterns(char * name, char * hash, char * salt)
 			for (int i = 0; i < namesize; i++)
 			{
 				name[i] = tolower(name[i]);
-				char * test_hash3 = test_name_year(name, salt, hash);
-				if( test_hash3 != NULL)
-				{
-					return test_hash3;
-				}
 			}
+			char * test_hash3 = test_name_year(name, salt, hash);
+			if( test_hash3 != NULL)
+			{
+				return test_hash3;
+			}
+			else
+			{
+				//leet substitutions
+				return NULL;
+			}
+
 		}
 	}
 	return NULL;
@@ -408,6 +401,26 @@ char * test_name_year(char *name, char *salt, char *hash)
 		}
 	}
 	return NULL;
+}
+
+
+char * leet_sub(char *name, int letter)
+{
+	return NULL;
+	/*
+	int len = strlen(name);
+	switch (letter)
+	{
+		case "l":
+			char *leetsub = malloc(len + 1);
+			char *l = strchr(name, letter);
+		case "o":
+			char *leetsub = malloc(len + 1);
+			char *o = strchr(name, letter);
+		default:
+			return NULL;
+	}*/
+
 }
 
 
@@ -482,7 +495,6 @@ void * crack_partition(void * arg)
 							break;
 						}
 					}
-
 				}
 			}
 			if (found == 1)
@@ -490,38 +502,6 @@ void * crack_partition(void * arg)
 				break;
 			}
 		}
-		/*
-		if ((current->found == 0) && (current->uid == a.tid))
-		{
-			for (int i = 0; i < 261490; i++)
-			{
-					if(strcmp(current->hash, (table[i]).hash) == 0)
-					{
-						//use mutex and fflush buffer
-						printf("%s:%s\n", current->username, (table[i]).pwd);
-						count_increment();
-						found = 1;
-						break;
-					}
-			}
-			//repeat for all dict partitions
-			if (found == 0)
-			{
-				for (int i = 0; i < 261490; i++)
-				{
-						if(strcmp(current->hash, (table[i]).hash) == 0)
-						{
-							//use mutex and fflush buffer
-							printf("%s:%s\n", current->username, (table[i]).pwd);
-							count_increment();
-							found = 1;
-							break;
-						}
-				}
-			}
-
-		}*/
-
   }
 	return NULL;
 }
