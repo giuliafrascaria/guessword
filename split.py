@@ -1,36 +1,36 @@
-with open("dictionary.txt") as f:
+with open("nodup.txt") as f:
     lines = f.readlines()
     print(len(lines))
     i = 0
-    file1 = open("d1.txt", "w+")
-    file2 = open("d2.txt", "w+")
-    file3 = open("d3.txt", "w+")
-    file4 = open("d4.txt", "w+")
-    file5 = open("d5.txt", "w+")
-    file6 = open("d6.txt", "w+")
-    file7 = open("d7.txt", "w+")
-    file8 = open("d8.txt", "w+")
+    file1 = open("d11.txt", "w+")
+    file2 = open("d22.txt", "w+")
+    file3 = open("d33.txt", "w+")
+    file4 = open("d44.txt", "w+")
+    file5 = open("d55.txt", "w+")
+    file6 = open("d66.txt", "w+")
+    file7 = open("d77.txt", "w+")
+    file8 = open("d88.txt", "w+")
 
-    for i in range(0, 32686):
+    for i in range(0, 58396):
         file1.write(lines[i])
 
-    for i in range(32687, 65374):
+    for i in range(58397, 116793):
         file2.write(lines[i])
 
-    for i in range(65374, 98061):
+    for i in range(116794, 175190):
         file3.write(lines[i])
 
-    for i in range(98062, 130748):
+    for i in range(175191, 233587):
         file4.write(lines[i])
 
-    for i in range(130749, 163435):
+    for i in range(233588, 291984):
         file5.write(lines[i])
 
-    for i in range(163436, 196122):
+    for i in range(291985, 348381):
         file6.write(lines[i])
 
-    for i in range(196123, 228809):
+    for i in range(348382, 406778):
         file7.write(lines[i])
 
-    for i in range(228810, 261490):
+    for i in range(406779, 467166):
         file8.write(lines[i])

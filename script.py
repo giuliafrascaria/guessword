@@ -4,7 +4,7 @@ import datetime
 
 with open("top250.txt") as f:
   lines = f.readlines()
-  new = open("topanddates.txt","w+")
+  new = open("longdates.txt","w+")
   for l in lines:
       wlist = l.strip().split('\t')
       print(wlist[3])
@@ -19,6 +19,6 @@ with open("top250.txt") as f:
   date_generated = [start + datetime.timedelta(days=x) for x in range(0, (end-start).days)]
 
   for date in date_generated:
-    dateline = date.strftime("%m%d%y") + "\n"
-    new.write(dateline)      
+    dateline = date.strftime("%m%d%Y") + "\n"
+    new.write(dateline)
   new.close()

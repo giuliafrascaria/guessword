@@ -48,7 +48,9 @@ pthread_t dict_threads[PTHREAD_N];
 struct pwd_hash * dictionary_array[PTHREAD_N];
 volatile int count;
 pthread_mutex_t count_mutex;
-int partition_sizes[8] = {32686, 32687, 32687, 32686, 32686, 32686, 32686, 32680};
+//int partition_sizes[8] = {32686, 32687, 32687, 32686, 32686, 32686, 32686, 32680};
+//int partition_sizes[8] = {43194, 43194, 43194, 43194, 43194, 43194, 43194, 43194};
+volatile int partition_sizes[8] = {58396, 58396, 58396, 58396, 58396, 58396, 58396, 60387};
 
 //function definitions
 void parse_top_250(char * salt, struct pwd_hash ** array);
@@ -181,17 +183,26 @@ int main (int argc, char ** argv)
 
 	struct pwd_hash *pwd_hashes_250 = malloc(261490 * sizeof(struct pwd_hash));
 
-	dictionary_array[0] = malloc(32686 * sizeof(struct pwd_hash));
-	dictionary_array[1] = malloc(32687 * sizeof(struct pwd_hash));
-	dictionary_array[2] = malloc(32687 * sizeof(struct pwd_hash));
-	dictionary_array[3] = malloc(32687 * sizeof(struct pwd_hash));
-	dictionary_array[4] = malloc(32687 * sizeof(struct pwd_hash));
-	dictionary_array[5] = malloc(32687 * sizeof(struct pwd_hash));
-	dictionary_array[6] = malloc(32687 * sizeof(struct pwd_hash));
-	dictionary_array[7] = malloc(32680 * sizeof(struct pwd_hash));
+	dictionary_array[0] = malloc(partition_sizes[0] * sizeof(struct pwd_hash));
+	printf("partition %d size %d\n", 0, partition_sizes[0]);
+	printf("partition %d size %d\n", 1, partition_sizes[1]);
+	printf("partition %d size %d\n", 2, partition_sizes[2]);
+	printf("partition %d size %d\n", 3, partition_sizes[3]);
+	printf("partition %d size %d\n", 4, partition_sizes[4]);
+	printf("partition %d size %d\n", 5, partition_sizes[5]);
+	printf("partition %d size %d\n", 6, partition_sizes[6]);
+	printf("partition %d size %d\n", 7, partition_sizes[7]);
+
+	dictionary_array[1] = malloc(partition_sizes[1] * sizeof(struct pwd_hash));
+	dictionary_array[2] = malloc(partition_sizes[2] * sizeof(struct pwd_hash));
+	dictionary_array[3] = malloc(partition_sizes[3] * sizeof(struct pwd_hash));
+	dictionary_array[4] = malloc(partition_sizes[4] * sizeof(struct pwd_hash));
+	dictionary_array[5] = malloc(partition_sizes[5] * sizeof(struct pwd_hash));
+	dictionary_array[6] = malloc(partition_sizes[6] * sizeof(struct pwd_hash));
+	dictionary_array[7] = malloc(partition_sizes[7] * sizeof(struct pwd_hash));
 	//parse_top_250(salt, &pwd_hashes_250);
 
-	char *filename[8] = {"d1.txt", "d2.txt", "d3.txt", "d4.txt", "d5.txt", "d6.txt", "d7.txt", "d8.txt"};
+	char *filename[8] = {"d11.txt", "d22.txt", "d33.txt", "d44.txt", "d55.txt", "d66.txt", "d77.txt", "d88.txt"};
 
 	printf("starting the dictionary threads\n");
 	struct thread_args_dict args_dict[PTHREAD_N];
@@ -209,14 +220,14 @@ int main (int argc, char ** argv)
 	}
 	join_threads_dict();
 
-	for (int i = 0; i < 32686; i++)
-	{
-		printf("%s %s\n", dictionary_array[0][i].hash, dictionary_array[0][i].pwd);
-	}
-	for (int i = 0; i < 32687; i++)
-	{
-		printf("%s %s\n", dictionary_array[1][i].hash, dictionary_array[1][i].pwd);
-	}
+	//for (int i = 0; i < 32686; i++)
+	//{
+	//	printf("%s %s\n", dictionary_array[0][i].hash, dictionary_array[0][i].pwd);
+	//}
+	//for (int i = 0; i < 32687; i++)
+	//{
+	//	printf("%s %s\n", dictionary_array[1][i].hash, dictionary_array[1][i].pwd);
+	//}
 	printf("finished parsing dictionaries\n");
 	//return 0;
 
@@ -458,15 +469,20 @@ void * crack_partition(void * arg)
 				//printf("here\n");
 				for (int j = 0; j < partition_sizes[i]; j++)
 				{
-					//printf("dict %d, pos %d\n", i, j);
-					if(strcmp(current->hash, dictionary_array[i][j].hash) == 0)
+					//printf("dict %d, pos %d, %s\n", i, j, dictionary_array[i][j].pwd);
+					if( dictionary_array[i][j].hash  != NULL)
 					{
-						//use mutex and fflush buffer
-						printf("%s:%s\n", current->username, dictionary_array[i][j].pwd);
-						count_increment();
-						found = 1;
-						break;
+						if(strcmp(current->hash, dictionary_array[i][j].hash) == 0)
+						{
+							//use mutex and fflush buffer
+							printf("%s:%s\n", current->username, dictionary_array[i][j].pwd);
+							count_increment();
+
+							found = 1;
+							break;
+						}
 					}
+
 				}
 			}
 			if (found == 1)
@@ -534,5 +550,7 @@ void count_increment()
 {
 	 pthread_mutex_lock(&count_mutex);
 	 count++;
+	 if ((count % 300) == 0)
+	 printf("\n\n%d\n\n", count);
 	 pthread_mutex_unlock(&count_mutex);
 }
