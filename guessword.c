@@ -40,10 +40,15 @@ struct thread_args {
 	struct pwd_hash * hash_table;
 };
 
+
+//global data
 #define PTHREAD_N 8
 pthread_t threads[PTHREAD_N];
 pthread_t dict_threads[PTHREAD_N];
 struct pwd_hash * dictionary_array[PTHREAD_N];
+volatile int count;
+pthread_mutex_t count_mutex;
+int partition_sizes[8] = {32686, 32687, 32687, 32686, 32686, 32686, 32686, 32680};
 
 //function definitions
 void parse_top_250(char * salt, struct pwd_hash ** array);
@@ -54,6 +59,7 @@ void * create_dictionary_partition(void *arg);
 void * crack_partition(void * arg);
 void join_threads(void);
 void join_threads_dict(void);
+void count_increment();
 
 
 //let the cracking begin
@@ -153,7 +159,7 @@ int main (int argc, char ** argv)
 	//delete found users from worklist
 	int matches = 0;
 	printf("starting to check\n");
-/*
+
 	for(current = head; current ; current=current->next)
 	{
 		//for each user check name-dependant stuff
@@ -162,9 +168,10 @@ int main (int argc, char ** argv)
 		{
 			printf("%s:%s\n", current->username, success);
 			current->found = 1;
+			count_increment();
 			matches++;
 		}
-  }*/
+  }
 
 	//open dictionaries and create all necessary data structures
 	//struct pwd_hash *pwd_hashes_250 = malloc(478 * sizeof(struct pwd_hash));
@@ -210,10 +217,11 @@ int main (int argc, char ** argv)
 	{
 		printf("%s %s\n", dictionary_array[1][i].hash, dictionary_array[1][i].pwd);
 	}
-	printf("the end\n");
-	return 0;
+	printf("finished parsing dictionaries\n");
+	//return 0;
 
 //------------------------------------------------------------------------------------------------------------------
+/*
 	FILE * top250 = fopen("dictionary.txt", "r");
 	if (top250 == NULL)
 	{
@@ -241,7 +249,7 @@ int main (int argc, char ** argv)
 		}
 		i++;
 
-	}
+	}*/
 	//continue this part
 //------------------------------------------------------------------------------------------------------------------
 
@@ -261,7 +269,9 @@ int main (int argc, char ** argv)
 				exit(EXIT_FAILURE);
 			}
 	}
+	//crack_partition((void *) &args[0]);
 	join_threads();
+	printf("found %d\n", count);
 	printf("the end\n");
 	return 0;
 
@@ -286,7 +296,8 @@ int main (int argc, char ** argv)
 			}
 		}
   }
-	printf("found %d\n", matches);
+	//printf("found %d\n", matches);
+	printf("found %d\n", count);
 	//exit(EXIT_SUCCESS);
 
 	exit(EXIT_SUCCESS);
@@ -430,12 +441,40 @@ void * crack_partition(void * arg)
 	struct thread_args a = *(struct thread_args *) arg;
 
 	struct user_details * head = a.user_list;
-	struct pwd_hash * table = a.hash_table;
+	//struct pwd_hash * table = a.hash_table;
 	struct user_details * current;
 
+	int found = 0;
+
+	//printf("my tid %d\n", a.tid);
 	for(current = head; current ; current=current->next)
 	{
 		//for each user that is still missing, check all hash table entries
+		found = 0;
+		for (int i = 0; i < 8; i++)
+		{
+			if ((current->found == 0) && (current->uid == a.tid) && (found == 0))
+			{
+				//printf("here\n");
+				for (int j = 0; j < partition_sizes[i]; j++)
+				{
+					//printf("dict %d, pos %d\n", i, j);
+					if(strcmp(current->hash, dictionary_array[i][j].hash) == 0)
+					{
+						//use mutex and fflush buffer
+						printf("%s:%s\n", current->username, dictionary_array[i][j].pwd);
+						count_increment();
+						found = 1;
+						break;
+					}
+				}
+			}
+			if (found == 1)
+			{
+				break;
+			}
+		}
+		/*
 		if ((current->found == 0) && (current->uid == a.tid))
 		{
 			for (int i = 0; i < 261490; i++)
@@ -444,10 +483,28 @@ void * crack_partition(void * arg)
 					{
 						//use mutex and fflush buffer
 						printf("%s:%s\n", current->username, (table[i]).pwd);
+						count_increment();
+						found = 1;
 						break;
 					}
 			}
-		}
+			//repeat for all dict partitions
+			if (found == 0)
+			{
+				for (int i = 0; i < 261490; i++)
+				{
+						if(strcmp(current->hash, (table[i]).hash) == 0)
+						{
+							//use mutex and fflush buffer
+							printf("%s:%s\n", current->username, (table[i]).pwd);
+							count_increment();
+							found = 1;
+							break;
+						}
+				}
+			}
+
+		}*/
 
   }
 	return NULL;
@@ -471,4 +528,11 @@ void join_threads_dict(void)
             printf("pthread_join failed\n");
 						exit(EXIT_FAILURE);
 				}
+}
+
+void count_increment()
+{
+	 pthread_mutex_lock(&count_mutex);
+	 count++;
+	 pthread_mutex_unlock(&count_mutex);
 }
