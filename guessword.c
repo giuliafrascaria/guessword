@@ -51,7 +51,9 @@ volatile int count;
 pthread_mutex_t count_mutex;
 //int partition_sizes[8] = {32686, 32687, 32687, 32686, 32686, 32686, 32686, 32680};
 //int partition_sizes[8] = {43194, 43194, 43194, 43194, 43194, 43194, 43194, 43194};
-volatile int partition_sizes[8] = {58396, 58396, 58396, 58396, 58396, 58396, 58396, 60387};
+//volatile int partition_sizes[8] = {58396, 58396, 58396, 58396, 58396, 58396, 58396, 60387};
+//volatile int partition_sizes[8] = {126222, 126222, 126222, 126222, 126222, 126222, 126222, 126220};
+volatile int partition_sizes[8] = {291633, 291633, 291633, 291633, 291633, 291633, 291633, 291628};
 
 //function definitions
 void parse_top_250(char * salt, struct pwd_hash ** array);
@@ -109,7 +111,6 @@ int main (int argc, char ** argv)
 		exit(EXIT_FAILURE);
 	}
 	memcpy(salt, &lineptr[7], 5);
-	printf("%s\n", salt);
 	free(lineptr);
 	fseek(shd, 0, SEEK_SET);
 
@@ -155,7 +156,7 @@ int main (int argc, char ** argv)
 				surname = strtok_r(NULL, " ", &buffer);
 			}
 		}
-		printf("%s\n", surname);
+
 		node->surname = malloc(40 * sizeof(char));
 		node->surname = strcpy(node->surname, surname);
 
@@ -179,7 +180,7 @@ int main (int argc, char ** argv)
 	//read user names and test nameYYYY first, before going to threads
 	//delete found users from worklist
 	int matches = 0;
-	printf("starting to check\n");
+	//printf("starting to check\n");
 
 	for(current = head; current ; current=current->next)
 	{
@@ -226,9 +227,9 @@ int main (int argc, char ** argv)
 	dictionary_array[7] = malloc(partition_sizes[7] * sizeof(struct pwd_hash));
 	//parse_top_250(salt, &pwd_hashes_250);
 
-	char *filename[8] = {"d11.txt", "d22.txt", "d33.txt", "d44.txt", "d55.txt", "d66.txt", "d77.txt", "d88.txt"};
+	char *filename[8] = {"d1.txt", "d2.txt", "d3.txt", "d4.txt", "d5.txt", "d6.txt", "d7.txt", "d8.txt"};
 
-	printf("starting the dictionary threads\n");
+	//printf("starting the dictionary threads\n");
 	struct thread_args_dict args_dict[PTHREAD_N];
 
 	for (size_t i = 0; i < PTHREAD_N; i++) {
@@ -244,17 +245,9 @@ int main (int argc, char ** argv)
 	}
 	join_threads_dict();
 
-	printf("finished parsing dictionaries\n");
-	//return 0;
+	//printf("finished parsing dictionaries\n");
 
-//------------------------------------------------------------------------------------------------------------------
-
-	//continue this part
-//------------------------------------------------------------------------------------------------------------------
-
-	//check against top250 passwords
-	//len = 0;
-	printf("starting the crack threads\n");
+	//printf("starting the crack threads\n");
 	struct thread_args args[PTHREAD_N];
 
 	for (size_t i = 0; i < PTHREAD_N; i++) {
@@ -270,8 +263,7 @@ int main (int argc, char ** argv)
 	}
 	//crack_partition((void *) &args[0]);
 	join_threads();
-	printf("found %d\n", count);
-	printf("the end\n");
+	//printf("found %d\n", count);
 
 	exit(EXIT_SUCCESS);
 }
@@ -349,6 +341,7 @@ char * check_name_patterns(char * name, char * hash, char * salt)
 	}
 	else
 	{
+		//all uppercase
 		ssize_t namesize = strlen(name);
 		for (int i = 0; i < namesize; i++)
 		{
@@ -361,8 +354,31 @@ char * check_name_patterns(char * name, char * hash, char * salt)
 		}
 		else
 		{
+			//one lowercase, didn't give any new result so it's a waste of time
+			/*
 			for (int i = 0; i < namesize; i++)
 			{
+				name[i] = tolower(name[i]);
+				char * test_hash7 = do_pwd_hash(name, salt);
+				if (strcmp(test_hash7, hash) == 0)
+				{
+					return name;
+				}
+				name[i] = toupper(name[i]);
+			}*/
+			for (int i = 0; i < namesize; i++)
+			{
+				name[i] = tolower(name[i]);
+			}
+			//one uppercase
+			for (int i = 0; i < namesize; i++)
+			{
+				name[i] = toupper(name[i]);
+				char * test_hash6 = do_pwd_hash(name, salt);
+				if (strcmp(test_hash6, hash) == 0)
+				{
+					return name;
+				}
 				name[i] = tolower(name[i]);
 			}
 			char * test_hash3 = test_name_year(name, salt, hash);
@@ -528,9 +544,14 @@ void * crack_partition(void * arg)
 						if(strcmp(current->hash, dictionary_array[i][j].hash) == 0)
 						{
 							//use mutex and fflush buffer
-							printf("%s:%s\n", current->username, dictionary_array[i][j].pwd);
-							fflush(stdout);
-							count_increment();
+							pthread_mutex_lock(&count_mutex);
+						 	count++;
+						 	printf("%s:%s\n", current->username, dictionary_array[i][j].pwd);
+						 	fflush(stdout);
+						 	 //if ((count % 300) == 0)
+						 	 //printf("\n\n%d\n\n", count);
+					 	 	pthread_mutex_unlock(&count_mutex);
+							//count_increment();
 
 							found = 1;
 							break;
@@ -571,7 +592,7 @@ void count_increment()
 {
 	 pthread_mutex_lock(&count_mutex);
 	 count++;
-	 if ((count % 300) == 0)
-	 printf("\n\n%d\n\n", count);
+	 //if ((count % 300) == 0)
+	 //printf("\n\n%d\n\n", count);
 	 pthread_mutex_unlock(&count_mutex);
 }
