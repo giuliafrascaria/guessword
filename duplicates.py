@@ -1,5 +1,5 @@
-with open("dictleet1.txt") as f:
-    nodup = open("nodup.txt", "w+")
+with open("dictleet3.txt") as f:
+    nodup = open("final1.txt", "w+")
     lines_seen = set()
     lines = f.readlines()
     for l in lines:
